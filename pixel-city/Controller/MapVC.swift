@@ -10,7 +10,7 @@ import UIKit
 import MapKit
 import CoreLocation
 
-class MapVC: UIViewController {
+class MapVC: UIViewController, UIGestureRecognizerDelegate { //inherit the delegate
 
     //IBOutlets
     @IBOutlet weak var mapView: MKMapView!
@@ -23,8 +23,18 @@ class MapVC: UIViewController {
         super.viewDidLoad()
         mapView.delegate = self //set this vc to be delegate of mapView
         locationManager.delegate = self //set this to be delegate of locationManager
-        configureLocationServices() //run this as soon as the app loads 
+        configureLocationServices() //run this as soon as the app loads
+        addDoubleTap() //call it
     }
+
+    
+    func addDoubleTap() { //func to add a pin when you double tap
+        let doubleTap = UITapGestureRecognizer(target: self, action: #selector(dropPin(sender:)))
+        doubleTap.numberOfTapsRequired = 2 //two taps
+        doubleTap.delegate = self //delegate
+        mapView.addGestureRecognizer(doubleTap) //add it to map
+    }
+    
 
     //IBactions
     @IBAction func centerMapBtnPressed(_ sender: Any) {
@@ -35,14 +45,30 @@ class MapVC: UIViewController {
     
 }
 
-
-
-
 extension MapVC: MKMapViewDelegate { //conform to mapview delegate; another place to inherit could be through extensions of the class
     func centerMapOnUserLocation() { //center the map on the user's location
         guard let coordinate = locationManager.location?.coordinate else { return } //if we have location, show coordinates, if not, return
         let coordinateRegion = MKCoordinateRegionMakeWithDistance(coordinate, regionRadius * 2.0 , regionRadius * 2.0 ) // we have to multiply the regionradius by 2.0 because it's only one direction but we want 1000 meters in both directions;we're gonna set how wide we want the radius to be
         mapView.setRegion(coordinateRegion, animated: true) //to set it
+    }
+    
+    @objc func dropPin(sender: UITapGestureRecognizer) { //func to add pin, use this to set up tapgesture
+        removePin() //remove pin before we add a new one
+        
+        let touchPoint = sender.location(in: mapView)   //TouchPoint-where we touch on the map, something will happen in that exact location
+        let touchCoordinate = mapView.convert(touchPoint, toCoordinateFrom: mapView)
+        
+        let annotation = DroppablePin(coordinate: touchCoordinate, identifier: "droppablePin") //instance of pindrop
+        mapView.addAnnotation(annotation) //add annotation
+        
+        let coordinateRegion = MKCoordinateRegionMakeWithDistance(touchCoordinate, regionRadius * 2.0 , regionRadius * 2.0) //when we drop a pin, center it.
+        mapView.setRegion(coordinateRegion, animated: true)
+    }
+    
+    func removePin() { //to remove pins before we drop a new one
+        for annotion in mapView.annotations {
+            mapView.removeAnnotation(annotion)
+        }
     }
 }
 
