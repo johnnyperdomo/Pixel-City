@@ -46,6 +46,20 @@ class MapVC: UIViewController, UIGestureRecognizerDelegate { //inherit the deleg
 }
 
 extension MapVC: MKMapViewDelegate { //conform to mapview delegate; another place to inherit could be through extensions of the class
+    
+    func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? { //to customize pin drop(annotation); in our case, the color, and animation
+        
+        if annotation is MKUserLocation { //if the annotation is our location, it won't set a pin or change the color to our location annotation
+            return nil
+        }
+        
+        let pinAnnotation = MKPinAnnotationView(annotation: annotation, reuseIdentifier: "droppablePin")
+        pinAnnotation.pinTintColor = #colorLiteral(red: 1, green: 0.5763723254, blue: 0, alpha: 1) //pick a color
+        pinAnnotation.animatesDrop = true //animate when we place a pin
+        return pinAnnotation
+    }
+    
+    
     func centerMapOnUserLocation() { //center the map on the user's location
         guard let coordinate = locationManager.location?.coordinate else { return } //if we have location, show coordinates, if not, return
         let coordinateRegion = MKCoordinateRegionMakeWithDistance(coordinate, regionRadius * 2.0 , regionRadius * 2.0 ) // we have to multiply the regionradius by 2.0 because it's only one direction but we want 1000 meters in both directions;we're gonna set how wide we want the radius to be
