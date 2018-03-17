@@ -14,10 +14,18 @@ class MapVC: UIViewController, UIGestureRecognizerDelegate { //inherit the deleg
 
     //IBOutlets
     @IBOutlet weak var mapView: MKMapView!
+    @IBOutlet weak var pullUpView: UIView!
+    @IBOutlet weak var pullupViewHeightConstraint: NSLayoutConstraint!
     
     var locationManager = CLLocationManager () //this manages the locations of people
     let authorizationStatus = CLLocationManager.authorizationStatus() //to store the authorization data
     let regionRadius: Double = 1000 //1000 meters; to keep track of the radius
+    
+    var screensize = UIScreen.main.bounds //size of the screen; use it to center the spinner later on using this variable
+    
+    var spinner: UIActivityIndicatorView? //spinner to let user know downloading imgs in progress
+    var progressLabel: UILabel? //progress label
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -35,7 +43,36 @@ class MapVC: UIViewController, UIGestureRecognizerDelegate { //inherit the deleg
         mapView.addGestureRecognizer(doubleTap) //add it to map
     }
     
-
+    func addSwipe() { //take note of swipe gesture
+        let swipe = UISwipeGestureRecognizer(target: self, action: #selector(animateViewDown))
+        swipe.direction = .down //allows to swipe down
+        pullUpView.addGestureRecognizer(swipe)
+    }
+    
+    
+    func animateViewUp() { //animate bottom view up, when we drop a pin.
+        pullupViewHeightConstraint.constant = 300 //view is now up on screen
+        UIView.animate(withDuration: 0.3) { //animates it, not just instant
+        self.view.layoutIfNeeded() //redraw everything and show what has changed
+        }
+    }
+    
+  @objc  func animateViewDown() { //to pull the view down if we swipe
+        pullupViewHeightConstraint.constant = 0 //view is now hidden
+        UIView.animate(withDuration: 0.3) { //animates
+            self.view.layoutIfNeeded() //redraw everything and show what has changed
+        }
+    }
+    
+    func addSpinner() {
+        spinner = UIActivityIndicatorView() //instantiat\
+        spinner?.center = CGPoint(x: (screensize.width / 2) - ((spinner?.frame.width)! / 2), y: 150) // divide by the width to be center ; 300 tall, divide by 2 to be centered vertically
+        spinner?.activityIndicatorViewStyle = .whiteLarge
+        spinner?.color = #colorLiteral(red: 0.2549019754, green: 0.2745098174, blue: 0.3019607961, alpha: 1)
+        spinner?.startAnimating() //start animating
+        pullUpView.addSubview(spinner!) //add it to view
+    }
+    
     //IBactions
     @IBAction func centerMapBtnPressed(_ sender: Any) {
         if authorizationStatus == .authorizedAlways || authorizationStatus == .authorizedWhenInUse { //to check to see if we have access to location services
@@ -68,6 +105,9 @@ extension MapVC: MKMapViewDelegate { //conform to mapview delegate; another plac
     
     @objc func dropPin(sender: UITapGestureRecognizer) { //func to add pin, use this to set up tapgesture
         removePin() //remove pin before we add a new one
+        animateViewUp() //call animate view, when we drop a pin.
+        addSwipe()
+        addSpinner()
         
         let touchPoint = sender.location(in: mapView)   //TouchPoint-where we touch on the map, something will happen in that exact location
         let touchCoordinate = mapView.convert(touchPoint, toCoordinateFrom: mapView)
