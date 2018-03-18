@@ -145,6 +145,7 @@ extension MapVC: MKMapViewDelegate { //conform to mapview delegate; another plac
         addSwipe() // add swipe to hide the photo view down
         addSpinner() //add spinner once we drop pin
         addProgressLabel() //add label once we drop pin
+    
         
         let touchPoint = sender.location(in: mapView)   //TouchPoint-where we touch on the map, something will happen in that exact location
         let touchCoordinate = mapView.convert(touchPoint, toCoordinateFrom: mapView)
