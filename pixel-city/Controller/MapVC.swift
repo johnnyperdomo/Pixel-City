@@ -9,6 +9,8 @@
 import UIKit
 import MapKit
 import CoreLocation
+import Alamofire
+import AlamofireImage
 
 class MapVC: UIViewController, UIGestureRecognizerDelegate { //inherit the delegate
 
@@ -28,6 +30,8 @@ class MapVC: UIViewController, UIGestureRecognizerDelegate { //inherit the deleg
     
     var flowLayout = UICollectionViewFlowLayout() //if we make a collection view programmatically, we need to make a flowLayout for it.
     var collectionView: UICollectionView? //collection view programmatically
+    
+    var imageUrlArray = [String]() //array to hold all the img URLS
     
     
     override func viewDidLoad() {
@@ -155,11 +159,34 @@ extension MapVC: MKMapViewDelegate { //conform to mapview delegate; another plac
         
         let coordinateRegion = MKCoordinateRegionMakeWithDistance(touchCoordinate, regionRadius * 2.0 , regionRadius * 2.0) //when we drop a pin, center it.
         mapView.setRegion(coordinateRegion, animated: true)
+        
+        retrieveURLS(forAnnotation: annotation) { (true) in //to call this func when we drop a pin, to retrieve urls for imgs
+            print(self.imageUrlArray)
+        }
     }
     
     func removePin() { //to remove pins before we drop a new one
         for annotion in mapView.annotations {
             mapView.removeAnnotation(annotion)
+        }
+    }
+    
+    
+    func retrieveURLS(forAnnotation annotation: DroppablePin, completion: @escaping (_ status: Bool) -> ()) { //to retrieve urls of the imgs for the location
+        imageUrlArray = [] //to make the array empty, if we drop new pin to start fresh
+        
+        Alamofire.request(flickrUrl(forApiKey: apiKey, withAnnotation: annotation, andNumberOfPhotos: 40)).responseJSON { (response) in //to request our url, using alamofire
+            
+            //Json parsing
+            guard let json = response.result.value as? Dictionary<String, AnyObject> else { return } //getting the value of url request, and making a dictionary
+            let photosDict = json["photos"] as! Dictionary<String, AnyObject> //access the photos dictionary using 'json'
+            let photosDictArray = photosDict["photo"] as! [Dictionary<String, AnyObject>] //pull out the "photo" dictionary; getting deeping into the dictionary
+            
+            for photo in photosDictArray { //cycle through the data in the dictionary to create a url
+                let postURL = "https://farm\(photo["farm"]!).staticflickr.com/\(photo["server"]!)/\(photo["id"]!)_\(photo["secret"]!)_h_d.jpg" //create a post URL. pull out data by diving into the dictionary using \()
+                self.imageUrlArray.append(postURL) //now we append the postUrl to the imageUrlArray
+            }
+            completion(true) //escape, to notify us the img urls downloaded.
         }
     }
 }
