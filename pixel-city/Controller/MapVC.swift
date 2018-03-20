@@ -48,7 +48,7 @@ class MapVC: UIViewController, UIGestureRecognizerDelegate { //inherit the deleg
         collectionView?.register(PhotoCell.self, forCellWithReuseIdentifier: "photoCell") //to use it as a cell class, use .self at the end
         collectionView?.delegate = self //delegate
         collectionView?.dataSource = self //datasource, then conform to them to make it work.
-        collectionView?.backgroundColor = #colorLiteral(red: 0.4666666687, green: 0.7647058964, blue: 0.2666666806, alpha: 1)
+        collectionView?.backgroundColor = #colorLiteral(red: 1, green: 1, blue: 1, alpha: 1)
         
         pullUpView.addSubview(collectionView!) //to add collectionview in the pullupView
     }
@@ -148,6 +148,11 @@ extension MapVC: MKMapViewDelegate { //conform to mapview delegate; another plac
         removeProgressLabel() //to remove progressLabel everytime we drop a new pin
         cancelAllSessions() //remove download sessions when we drop a pin
         
+        imageUrlArray = [] //empties the urls; to make the array empty, if we drop new pin to start fresh
+        imageArray = [] //empties the images array; clear old images
+        
+        collectionView?.reloadData() //reloads the data
+        
         animateViewUp() //call animate view, when we drop a pin.
         addSwipe() // add swipe to hide the photo view down
         addSpinner() //add spinner once we drop pin
@@ -169,7 +174,7 @@ extension MapVC: MKMapViewDelegate { //conform to mapview delegate; another plac
                     if finished {
                         self.removeSpinner() //once we're done downloading, hide
                         self.removeProgressLabel()
-                        //reload collectionView
+                        self.collectionView?.reloadData() //reloads the collectionView so we can see our data
                     }
                 })
             }
@@ -184,7 +189,6 @@ extension MapVC: MKMapViewDelegate { //conform to mapview delegate; another plac
     
     
     func retrieveURLS(forAnnotation annotation: DroppablePin, completion: @escaping (_ status: Bool) -> ()) { //to retrieve urls of the imgs for the location
-        imageUrlArray = [] //to make the array empty, if we drop new pin to start fresh
         
         Alamofire.request(flickrUrl(forApiKey: apiKey, withAnnotation: annotation, andNumberOfPhotos: 40)).responseJSON { (response) in //to request our url, using alamofire
             
@@ -202,7 +206,6 @@ extension MapVC: MKMapViewDelegate { //conform to mapview delegate; another plac
     }
     
     func retrieveImages(completion: @escaping (_ status: Bool) -> ()) { //func to retrieve the images of the URLs
-        imageArray = [] //clear old images
         
         for url in imageUrlArray { //parse through the urls to get images
             Alamofire.request(url).responseImage(completionHandler: { (response) in //to request images, using alamofire image
@@ -251,13 +254,16 @@ extension MapVC: UICollectionViewDelegate, UICollectionViewDataSource { //confor
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         // number of items in array
-        return 4
+        return imageArray.count //return number of images in section
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) ->
         UICollectionViewCell {
-            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "photoCell", for: indexPath) as? PhotoCell //gotta add an identifier so it knows what you're talking about
-            return cell!
+            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "photoCell", for: indexPath) as? PhotoCell else { return UICollectionViewCell() }//gotta add an identifier so it knows what you're talking about
+            let imageFromIndex = imageArray[indexPath.row] //gets image from row
+            let imageView = UIImageView(image: imageFromIndex) //gets image from imageFromIndex
+            cell.addSubview(imageView) //adds it to the cell View
+            return cell
     }
     
 }
