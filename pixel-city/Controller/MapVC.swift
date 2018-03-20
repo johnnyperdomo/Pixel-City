@@ -32,6 +32,7 @@ class MapVC: UIViewController, UIGestureRecognizerDelegate { //inherit the deleg
     var collectionView: UICollectionView? //collection view programmatically
     
     var imageUrlArray = [String]() //array to hold all the img URLS
+    var imageArray = [UIImage]() //array to hold Images
     
     
     override func viewDidLoad() {
@@ -68,6 +69,7 @@ class MapVC: UIViewController, UIGestureRecognizerDelegate { //inherit the deleg
     
     
     func animateViewUp() { //animate bottom view up, when we drop a pin.
+        cancelAllSessions() //call the function to cancel our download sections if we are downloading
         pullupViewHeightConstraint.constant = 300 //view is now up on screen
         UIView.animate(withDuration: 0.3) { //animates it, not just instant
         self.view.layoutIfNeeded() //redraw everything and show what has changed
@@ -99,7 +101,7 @@ class MapVC: UIViewController, UIGestureRecognizerDelegate { //inherit the deleg
     func addProgressLabel() { //progress label to track activity progress
         progressLabel = UILabel() //instantiate
         progressLabel?.frame = CGRect(x: (screensize.width / 2) - 100, y: 175, width: 200, height: 40) // gotta divide width by 2, and by the length of the rectangle to center it
-        progressLabel?.font = UIFont(name: "Avenir Next", size: 18)
+        progressLabel?.font = UIFont(name: "Avenir Next", size: 14)
         progressLabel?.textColor = #colorLiteral(red: 0.2549019754, green: 0.2745098174, blue: 0.3019607961, alpha: 1)
         progressLabel?.textAlignment = .center
         collectionView?.addSubview(progressLabel!) //add it
@@ -144,6 +146,7 @@ extension MapVC: MKMapViewDelegate { //conform to mapview delegate; another plac
         removePin() //remove pin before we add a new one
         removeSpinner()  //to remove spinner everytime we drop a new pin
         removeProgressLabel() //to remove progressLabel everytime we drop a new pin
+        cancelAllSessions() //remove download sessions when we drop a pin
         
         animateViewUp() //call animate view, when we drop a pin.
         addSwipe() // add swipe to hide the photo view down
@@ -160,8 +163,16 @@ extension MapVC: MKMapViewDelegate { //conform to mapview delegate; another plac
         let coordinateRegion = MKCoordinateRegionMakeWithDistance(touchCoordinate, regionRadius * 2.0 , regionRadius * 2.0) //when we drop a pin, center it.
         mapView.setRegion(coordinateRegion, animated: true)
         
-        retrieveURLS(forAnnotation: annotation) { (true) in //to call this func when we drop a pin, to retrieve urls for imgs
-            print(self.imageUrlArray)
+        retrieveURLS(forAnnotation: annotation) { (finished) in //to call this func when we drop a pin, to retrieve urls for imgs
+            if finished { //to check whether we're done downloading images
+                self.retrieveImages(completion: { (finished) in
+                    if finished {
+                        self.removeSpinner() //once we're done downloading, hide
+                        self.removeProgressLabel()
+                        //reload collectionView
+                    }
+                })
+            }
         }
     }
     
@@ -187,6 +198,31 @@ extension MapVC: MKMapViewDelegate { //conform to mapview delegate; another plac
                 self.imageUrlArray.append(postURL) //now we append the postUrl to the imageUrlArray
             }
             completion(true) //escape, to notify us the img urls downloaded.
+        }
+    }
+    
+    func retrieveImages(completion: @escaping (_ status: Bool) -> ()) { //func to retrieve the images of the URLs
+        imageArray = [] //clear old images
+        
+        for url in imageUrlArray { //parse through the urls to get images
+            Alamofire.request(url).responseImage(completionHandler: { (response) in //to request images, using alamofire image
+                guard let image = response.result.value else { return } //returns the image value from the response
+                self.imageArray.append(image) //append the image to imageArray
+                self.progressLabel?.text = "\(self.imageArray.count)/40 Images Downloaded" //shows how many images has been downloaded so far, in progress label
+                
+                if self.imageArray.count == self.imageUrlArray.count { //to check whether we have the same number of images as urls, if yes, then we're done.
+                    completion(true)
+                }
+                
+            })
+            
+        }
+    }
+    
+    func cancelAllSessions() { //to cancel the downloading session if user swipes the collectionview down.
+        Alamofire.SessionManager.default.session.getTasksWithCompletionHandler { (sessionDataTask, uploadData, downloadData) in //three different types of sessions
+            sessionDataTask.forEach({ $0.cancel() }) // $0 is like a single line for loop, makes a temporary task name for each instance of the SessionDataTask, then we cancel it with .cancel
+            downloadData.forEach({ $0.cancel() }) //cancels sessions we don't want.
         }
     }
 }
