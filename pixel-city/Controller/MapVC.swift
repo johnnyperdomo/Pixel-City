@@ -42,13 +42,13 @@ class MapVC: UIViewController, UIGestureRecognizerDelegate { //inherit the deleg
         configureLocationServices() //run this as soon as the app loads
         addDoubleTap() //call it
         
-        
-        
         collectionView = UICollectionView(frame: view.bounds, collectionViewLayout: flowLayout) //instantiate
         collectionView?.register(PhotoCell.self, forCellWithReuseIdentifier: "photoCell") //to use it as a cell class, use .self at the end
         collectionView?.delegate = self //delegate
         collectionView?.dataSource = self //datasource, then conform to them to make it work.
         collectionView?.backgroundColor = #colorLiteral(red: 1, green: 1, blue: 1, alpha: 1)
+        
+        registerForPreviewing(with: self, sourceView: collectionView!) //register to preview image using 3D Touch
         
         pullUpView.addSubview(collectionView!) //to add collectionview in the pullupView
     }
@@ -275,7 +275,23 @@ extension MapVC: UICollectionViewDelegate, UICollectionViewDataSource { //confor
 }
 
 
-
+//3D touch capabilities
+extension MapVC: UIViewControllerPreviewingDelegate { //conforming to 3D touch delegate
+    func previewingContext(_ previewingContext: UIViewControllerPreviewing, viewControllerForLocation location: CGPoint) -> UIViewController? { //set up popVC
+        
+        guard let indexPath = collectionView?.indexPathForItem(at: location), let cell = collectionView?.cellForItem(at: indexPath) else { return nil } //helps us know where on the screen we're pressing from
+        
+        guard let popVC = storyboard?.instantiateViewController(withIdentifier: "PopVC") as? PopVC else { return nil} //to instantiate popVC
+        popVC.initData(forImage: imageArray[indexPath.row]) //will send the exact image we tapped. index path.row
+        
+        previewingContext.sourceRect = cell.contentView.frame //show the full image
+        return popVC
+    }
+    
+    func previewingContext(_ previewingContext: UIViewControllerPreviewing, commit viewControllerToCommit: UIViewController) { //to preview the context, to "peek"
+        show(viewControllerToCommit, sender: self) //show the view controller
+    }
+}
 
 
 
