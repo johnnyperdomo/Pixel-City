@@ -266,6 +266,12 @@ extension MapVC: UICollectionViewDelegate, UICollectionViewDataSource { //confor
             return cell
     }
     
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) { //when one of the cells is tapped or selected
+        guard let popVC = storyboard?.instantiateViewController(withIdentifier: "PopVC") as? PopVC else { return } //instance of popVC
+        popVC.initData(forImage: imageArray[indexPath.row]) //will send the exact image we tapped. index path.row
+        present(popVC, animated: true, completion: nil) //present it to the view controller
+    }
+    
 }
 
 
