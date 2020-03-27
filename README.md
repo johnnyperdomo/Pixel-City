@@ -2,7 +2,7 @@
 iOS app that shows images based on location with Mapkit written in Swift 4
 
 ## Preview
-![Alt Text](https://media.giphy.com/media/dSeUs5NMLNr1xyIidY/giphy.gif) 
+![Alt Text](https://media.giphy.com/media/W0WHNUEJYpLd1du0MK/giphy.gif) 
 
 **Built with**
 - Ios 11
